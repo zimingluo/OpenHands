@@ -48,7 +48,8 @@ class LLMConfig(BaseModel):
         reasoning_effort: The effort to put into reasoning. This is a string that can be one of 'low', 'medium', 'high', or 'none'. Exclusive for o1 models.
     """
 
-    model: str = Field(default='claude-3-5-sonnet-20241022')
+    # model: str = Field(default='claude-3-5-sonnet-20241022')
+    model: str = Field(default='gpt-4o')
     api_key: SecretStr | None = Field(default=None)
     base_url: str | None = Field(default=None)
     api_version: str | None = Field(default=None)
@@ -59,7 +60,7 @@ class LLMConfig(BaseModel):
     aws_secret_access_key: SecretStr | None = Field(default=None)
     aws_region_name: str | None = Field(default=None)
     openrouter_site_url: str = Field(default='https://docs.all-hands.dev/')
-    openrouter_app_name: str = Field(default='OpenHands')
+    openrouter_app_name: str = Field(default='Ziming')
     # total wait time: 5 + 10 + 20 + 30 = 65 seconds
     num_retries: int = Field(default=4)
     retry_multiplier: float = Field(default=2)
