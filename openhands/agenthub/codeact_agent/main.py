@@ -23,6 +23,7 @@ from openhands.agenthub.codeact_agent.tools.browser import (
 from openhands.controller.state.state import State
 from openhands.core.config import AgentConfig, LLMConfig
 from openhands.core.exceptions import FunctionCallNotExistsError
+from openhands.core.message import ImageContent, Message, TextContent
 from openhands.events.action import (
     CmdRunAction,
     MessageAction,
@@ -281,57 +282,75 @@ def test_mismatched_tool_call_events(mock_state: State):
     assert len(messages) == 1
 
 
+def test_enhance_messages_adds_newlines_between_consecutive_user_messages(
+    agent: CodeActAgent,
+):
+    """Test that _enhance_messages adds newlines between consecutive user messages."""
+    # Set up the prompt manager
+    agent.prompt_manager = Mock()
+    agent.prompt_manager.add_examples_to_initial_message = Mock()
+    agent.prompt_manager.add_info_to_initial_message = Mock()
+    agent.prompt_manager.enhance_message = Mock()
+
+    # Create consecutive user messages with various content types
+    messages = [
+        # First user message with TextContent only
+        Message(role='user', content=[TextContent(text='First user message')]),
+        # Second user message with TextContent only - should get newlines added
+        Message(role='user', content=[TextContent(text='Second user message')]),
+        # Assistant message
+        Message(role='assistant', content=[TextContent(text='Assistant response')]),
+        # Third user message with TextContent only - shouldn't get newlines
+        Message(role='user', content=[TextContent(text='Third user message')]),
+        # Fourth user message with ImageContent first, TextContent second - should get newlines
+        Message(
+            role='user',
+            content=[
+                ImageContent(image_urls=['https://example.com/image.jpg']),
+                TextContent(text='Fourth user message with image'),
+            ],
+        ),
+        # Fifth user message with only ImageContent - no TextContent to modify
+        Message(
+            role='user',
+            content=[
+                ImageContent(image_urls=['https://example.com/another-image.jpg'])
+            ],
+        ),
+    ]
+
+    # Call _enhance_messages
+    enhanced_messages = agent._enhance_messages(messages)
+
+    print(enhanced_messages)
+
+    # Verify newlines were added correctly
+    assert enhanced_messages[1].content[0].text.startswith('\n\n')
+    assert enhanced_messages[1].content[0].text == '\n\nSecond user message'
+
+    # Third message follows assistant, so shouldn't have newlines
+    assert not enhanced_messages[3].content[0].text.startswith('\n\n')
+    assert enhanced_messages[3].content[0].text == 'Third user message'
+
+    # Fourth message follows user, so should have newlines in its TextContent
+    assert enhanced_messages[4].content[1].text.startswith('\n\n')
+    assert enhanced_messages[4].content[1].text == '\n\nFourth user message with image'
+
+    # Fifth message only has ImageContent, no TextContent to modify
+    assert len(enhanced_messages[5].content) == 1
+    assert isinstance(enhanced_messages[5].content[0], ImageContent)
+
+    # Verify prompt manager methods were called as expected
+    assert agent.prompt_manager.add_examples_to_initial_message.call_count == 1
+    assert (
+        agent.prompt_manager.enhance_message.call_count == 5
+    )  # Called for each user message
+
+
 if __name__ == '__main__':
-    pass
-    # agent = CodeActAgent(llm=LLM(LLMConfig()), config=AgentConfig())
-    # tool_call_metadata = Mock(
-    #     spec=ToolCallMetadata,
-    #     model_response=Mock(
-    #         id='model_response_0',
-    #         choices=[
-    #             Mock(
-    #                 message=Mock(
-    #                     role='assistant',
-    #                     content='who are u?',
-    #                     tool_calls=[
-    #                         Mock(spec=ChatCompletionMessageToolCall, id='tool_call_0')
-    #                     ],
-    #                 )
-    #             )
-    #         ],
-    #     ),
-    #     tool_call_id='tool_call_0',
-    #     function_name='foo',
-    # )
+    myagent = CodeActAgent(llm=LLM(LLMConfig()), config=AgentConfig())
 
-    # action = CmdRunAction('foo')
-    # # action._source = 'agent'
-    # action.tool_call_metadata = tool_call_metadata
-
-    # observation = CmdOutputObservation(content='', command_id=0, command='foo')
-    # observation.tool_call_metadata = tool_call_metadata
-
-    # # When both events are provided, the agent should get three messages:
-    # # 1. The system message,
-    # # 2. The action message, and
-    # # 3. The observation message
-    # mock_state.history = [action, observation]
-    # messages = agent._get_messages(mock_state)
-    # assert len(messages) == 3
-
-    # # The same should hold if the events are presented out-of-order
-    # mock_state.history = [observation, action]
-    # messages = agent._get_messages(mock_state)
-    # assert len(messages) == 3
-
-    # # If only one of the two events is present, then we should just get the system message
-    # mock_state.history = [action]
-    # messages = agent._get_messages(mock_state)
-    # assert len(messages) == 1
-
-    # mock_state.history = [observation]
-    # messages = agent._get_messages(mock_state)
-    # assert len(messages) == 1
+    test_enhance_messages_adds_newlines_between_consecutive_user_messages(myagent)
 
     # test_my_agent()
     # my_agnet = agent()

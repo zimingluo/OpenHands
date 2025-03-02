@@ -169,3 +169,9 @@ class State:
             if isinstance(event, MessageAction) and event.source == EventSource.USER:
                 return event
         return None
+
+
+if __name__ == '__main__':
+    state = State(agent_state=AgentState.RUNNING)
+
+    print(state.agent_state)

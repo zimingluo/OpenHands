@@ -187,6 +187,8 @@ async def run_controller(
         with open(file_path, 'w') as f:
             json.dump(histories, f)
 
+    print(state.history)
+
     return state
 
 
