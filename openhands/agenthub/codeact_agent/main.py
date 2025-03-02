@@ -322,6 +322,8 @@ def test_enhance_messages_adds_newlines_between_consecutive_user_messages(
     # Call _enhance_messages
     enhanced_messages = agent._enhance_messages(messages)
 
+    print(enhanced_messages)
+
     # Verify newlines were added correctly
     assert enhanced_messages[1].content[0].text.startswith('\n\n')
     assert enhanced_messages[1].content[0].text == '\n\nSecond user message'
